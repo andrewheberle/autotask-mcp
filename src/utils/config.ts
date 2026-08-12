@@ -31,6 +31,7 @@ export interface EnvironmentConfig {
     secret?: string;
     integrationCode?: string;
     apiUrl?: string;
+    impersonationResourceId?: number;
   };
   server: {
     name: string;
@@ -63,6 +64,7 @@ export interface GatewayCredentials {
   secret: string | undefined;
   integrationCode: string | undefined;
   apiUrl: string | undefined;
+  impersonationResourceId: number | undefined;
 }
 
 /**
@@ -71,13 +73,16 @@ export interface GatewayCredentials {
  * - X-API-Key header -> X_API_KEY env var
  * - X-API-Secret header -> X_API_SECRET env var
  * - X-Integration-Code header -> X_INTEGRATION_CODE env var
+ * - X-Impersonation-Resource-Id header -> X_IMPERSONATION_RESOURCE_ID env var
  */
 export function getCredentialsFromGateway(): GatewayCredentials {
+  const rawResourceId = process.env.X_IMPERSONATION_RESOURCE_ID || process.env.AUTOTASK_IMPERSONATION_RESOURCE_ID;
   return {
     username: process.env.X_API_KEY || process.env.AUTOTASK_USERNAME,
     secret: process.env.X_API_SECRET || process.env.AUTOTASK_SECRET,
     integrationCode: process.env.X_INTEGRATION_CODE || process.env.AUTOTASK_INTEGRATION_CODE,
     apiUrl: process.env.X_API_URL || process.env.AUTOTASK_API_URL,
+    impersonationResourceId: rawResourceId ? Number(rawResourceId) : undefined,
   };
 }
 
@@ -91,11 +96,13 @@ export function parseCredentialsFromHeaders(headers: Record<string, string | str
     return Array.isArray(value) ? value[0] : value;
   };
 
+  const rawResourceId = getHeader('x-impersonation-resource-id');
   return {
     username: getHeader('x-api-key'),
     secret: getHeader('x-api-secret'),
     integrationCode: getHeader('x-integration-code'),
     apiUrl: getHeader('x-api-url'),
+    impersonationResourceId: rawResourceId ? Number(rawResourceId) : undefined,
   };
 }
 
@@ -116,14 +123,16 @@ export function loadEnvironmentConfig(): EnvironmentConfig {
         secret: process.env.AUTOTASK_SECRET,
         integrationCode: process.env.AUTOTASK_INTEGRATION_CODE,
         apiUrl: process.env.AUTOTASK_API_URL,
+        impersonationResourceId: rawResourceId ? Number(rawResourceId) : undefined,
       };
 
   // Filter out undefined values to satisfy exactOptionalPropertyTypes
-  const autotaskConfig: { username?: string; secret?: string; integrationCode?: string; apiUrl?: string } = {};
+  const autotaskConfig: { username?: string; secret?: string; integrationCode?: string; apiUrl?: string; impersonationResourceId?: number } = {};
   if (creds.username) autotaskConfig.username = creds.username;
   if (creds.secret) autotaskConfig.secret = creds.secret;
   if (creds.integrationCode) autotaskConfig.integrationCode = creds.integrationCode;
   if (creds.apiUrl) autotaskConfig.apiUrl = creds.apiUrl;
+  if (creds.impersonationResourceId) autotaskConfig.impersonationResourceId = creds.impersonationResourceId;
 
   const transportType = (process.env.MCP_TRANSPORT as TransportType) || 'stdio';
   if (transportType !== 'stdio' && transportType !== 'http') {
@@ -164,7 +173,8 @@ export function mergeWithMcpConfig(envConfig: EnvironmentConfig, mcpArgs?: Recor
       username: mcpArgs?.autotask?.username || envConfig.autotask.username,
       secret: mcpArgs?.autotask?.secret || envConfig.autotask.secret,
       integrationCode: mcpArgs?.autotask?.integrationCode || envConfig.autotask.integrationCode,
-      apiUrl: mcpArgs?.autotask?.apiUrl || envConfig.autotask.apiUrl
+      apiUrl: mcpArgs?.autotask?.apiUrl || envConfig.autotask.apiUrl,
+      impersonationResourceId: mcpArgs?.autotask?.impersonationResourceId || envConfig.autotask.impersonationResourceId
     }
   };
 
@@ -325,9 +335,10 @@ Required Environment Variables:
 
 === Gateway Mode (hosted deployment) ===
 When AUTH_MODE=gateway, credentials are injected by the MCP Gateway:
-  X_API_KEY                - Autotask API username (from X-API-Key header)
-  X_API_SECRET             - Autotask API secret (from X-API-Secret header)
-  X_INTEGRATION_CODE       - Autotask integration code (from X-Integration-Code header)
+  X_API_KEY                   - Autotask API username (from X-API-Key header)
+  X_API_SECRET                - Autotask API secret (from X-API-Secret header)
+  X_INTEGRATION_CODE          - Autotask integration code (from X-Integration-Code header)
+  X_IMPERSONATION_RESOURCE_ID - Autotask impersonation resource ID (from X-Impersonation-Resource-Id header)
 
 === Common Options ===
   AUTOTASK_API_URL         - Autotask API base URL (auto-detected if not provided)
