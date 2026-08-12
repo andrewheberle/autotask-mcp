@@ -119,6 +119,7 @@ export class AutotaskHttpClient {
     private readonly secret: string,
     private readonly integrationCode: string,
     private readonly apiUrl: string | undefined,
+    private readonly impersonationResourceId: number | undefined,
     private readonly logger: Logger
   ) {}
 
@@ -131,13 +132,15 @@ export class AutotaskHttpClient {
   }
 
   private headers(): Record<string, string> {
-    return {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
       ApiIntegrationcode: this.integrationCode,
       UserName: this.username,
       Secret: this.secret,
     };
+    if (this.impersonationResourceId) headers["ImpersonationResourceId"] = String(this.impersonationResourceId);
+    return headers;
   }
 
   /**

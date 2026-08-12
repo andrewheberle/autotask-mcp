@@ -140,6 +140,7 @@ export class AutotaskMcpServer {
     if (credentials.secret) autotaskConfig.secret = credentials.secret;
     if (credentials.integrationCode) autotaskConfig.integrationCode = credentials.integrationCode;
     if (credentials.apiUrl) autotaskConfig.apiUrl = credentials.apiUrl;
+    if (credentials.impersonationResourceId) autotaskConfig.impersonationResourceId = credentials.impersonationResourceId;
 
     const requestConfig: McpServerConfig = {
       name: this.envConfig?.server?.name || 'autotask-mcp',
